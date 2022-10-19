@@ -24,30 +24,39 @@ void print_RtAudio(RtAudio dac)
     }
 }
 
-int tick(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status, void *data)
+int tick( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+           double streamTime, RtAudioStreamStatus status, void *data )
 {
+  // Since the number of input and output channels is equal, we can do
+  // a simple buffer copy operation here.
+  if ( status ) std::cout << "Stream over/underflow detected." << std::endl;
 
+  unsigned int *bytes = (unsigned int *) data;
+  memcpy( outputBuffer, inputBuffer, *bytes );
+  return 0;
 }
 
 int main(int ac, char **av)
 {
     RtAudio dac;
 
+    dac.showWarnings( true );
+
     if (dac.getDeviceCount() == 0)
     {
-        cout << "No device found exiting code: 0" << endl;
-        return 0;
+        cout << "No device found exiting" << endl;
+        exit(0);
     }
 
     // Device Informations
     print_RtAudio(dac);
 
-    int inputId;
-    int outputId;
-    cout << "Select input device: " << endl;
-    cin >> inputId;
-    cout << "Select output device: " << endl;
-    cin >> outputId;
+    int inputId = 2;
+    int outputId = 0;
+    // cout << "Select input device: " << endl;
+    // cin >> inputId;
+    // cout << "Select output device: " << endl;
+    // cin >> outputId;
 
     cout << inputId << " " << outputId << endl;
 
@@ -66,9 +75,15 @@ int main(int ac, char **av)
     unsigned int sampleRate = 44100;
     unsigned int bufferFrames = 16;
 
-    // options.flags = RTAUDIO_NONINTERLEAVED;
+    options.flags = RTAUDIO_NONINTERLEAVED;
     try {
-        dac.openStream( &inputParameters, &outputParameters, format, sampleRate, &bufferFrames, &tick, NULL, &options);
+        auto error_callback = [](auto flag, auto msg){
+            std::cerr << "RtAudio Error: " << msg << std::endl;
+        };
+
+        // int data;
+        double *data = (double *) calloc( 2, sizeof( double ) );
+        dac.openStream(&outputParameters, NULL, format, sampleRate, &bufferFrames, &tick, (void *)data, &options, error_callback);
         dac.startStream();
     }
         catch ( RtAudioError& e ) {

@@ -21,13 +21,13 @@ deps = [
 ]	
 
 srcs =  [
-    'src/main.cpp',
-    'src/RtAudio.cpp',
+    'src/main.cpp'
 ]
 
 executable('POC_RtAudio', 
     srcs,
     include_directories: inc,
     dependencies: deps,
+    link_args : ['-L' + meson.current_source_dir() + '/libs', '-l' + 'rtaudio', '-l' + 'pthread'],
     cpp_args: defines
 )
